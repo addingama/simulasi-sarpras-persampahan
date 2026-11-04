@@ -5,6 +5,7 @@ const details = JSON.parse(await readFile(new URL('region-details.json', root), 
 const geojson = JSON.parse(await readFile(new URL('indonesia-38-provinces.geojson', root), 'utf8'));
 const provincesCsv = await readFile(new URL('provinces.csv', root), 'utf8');
 const regenciesCsv = await readFile(new URL('regencies.csv', root), 'utf8');
+const boundaryManifest = JSON.parse(await readFile(new URL('boundaries/index.json', root), 'utf8'));
 
 const errors = [];
 const allowedPriority = new Set(['P1', 'P2', 'P3', 'P4']);
@@ -48,6 +49,15 @@ assert(geojson.type === 'FeatureCollection', 'GeoJSON harus berupa FeatureCollec
 assert(geojson.features?.length === 38, `GeoJSON harus memiliki 38 fitur provinsi, ditemukan ${geojson.features?.length ?? 0}.`);
 assert(provincesCsv.trim().split(/\r?\n/).length - 1 === 38, 'provinces.csv harus memiliki 38 baris data.');
 assert(regenciesCsv.trim().split(/\r?\n/).length - 1 === 514, 'regencies.csv harus memiliki 514 baris data.');
+assert(Object.keys(boundaryManifest).length === 38, `Manifest batas harus memiliki 38 provinsi, ditemukan ${Object.keys(boundaryManifest).length}.`);
+let boundaryCount = 0;
+for (const [code, entry] of Object.entries(boundaryManifest)) {
+  const boundary = JSON.parse(await readFile(new URL(`boundaries/${entry.file}`, root), 'utf8'));
+  assert(boundary.type === 'FeatureCollection', `Batas provinsi ${code} harus berupa FeatureCollection.`);
+  assert(boundary.features?.length === entry.count, `Jumlah batas provinsi ${code} tidak sesuai manifest.`);
+  boundaryCount += boundary.features?.length || 0;
+}
+assert(boundaryCount === 514, `Jumlah geometri kabupaten/kota harus 514, ditemukan ${boundaryCount}.`);
 
 if (errors.length) {
   console.error(`Validasi gagal dengan ${errors.length} masalah:`);
@@ -55,4 +65,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Validasi data berhasil: 514 daerah, 38 provinsi, 6 Pusdal, dan agregat nasional konsisten.');
+console.log('Validasi data berhasil: 514 daerah dan batasnya, 38 provinsi, 6 Pusdal, dan agregat nasional konsisten.');

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="map.css" />
   <link rel="stylesheet" href="detail.css" />
   <link rel="stylesheet" href="filter.css" />
+  <link rel="stylesheet" href="province-detail.css" />
 </head>
 <body>
   <main class="shell">
@@ -77,6 +78,10 @@
     <aside class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <div class="detail-top"><button class="detail-close" id="detailClose" aria-label="Tutup detail">×</button><span class="label">DRILL-DOWN PROVINSI</span></div>
       <div class="detail-heading"><div><h2 id="detailTitle">Provinsi</h2><p id="detailSubtitle"></p></div><div class="detail-score"><strong id="detailCoverage">—</strong><span>pemenuhan angkut</span></div></div>
+      <div class="detail-map-card">
+        <div class="detail-map-copy"><span class="label">PETA WILAYAH</span><strong id="detailMapName">Provinsi</strong><small id="detailMapCaption">Visualisasi batas administratif provinsi</small><div class="detail-map-legend" aria-label="Legenda prioritas"><span><i class="p1"></i>P1</span><span><i class="p2"></i>P2</span><span><i class="p3"></i>P3</span><span><i class="p4"></i>P4</span></div></div>
+        <div class="detail-map-visual"><svg id="provinceMiniMap" class="province-mini-map" viewBox="0 0 320 190" role="img" aria-label="Peta provinsi terpilih"></svg><div id="regionMapTooltip" class="region-map-tooltip" role="tooltip" aria-hidden="true"></div></div>
+      </div>
       <div class="detail-kpis" id="detailKpis"></div>
       <div class="detail-controls"><input id="regionSearch" type="search" placeholder="Cari kabupaten atau kota…" /><select id="priorityFilter"><option value="all">Semua prioritas</option><option value="P1">P1 · Kritis</option><option value="P2">P2 · Sangat kurang</option><option value="P3">P3 · Kurang</option><option value="P4">P4 · Memadai</option></select></div>
       <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Daerah</th><th>Prioritas</th><th>Timbulan</th><th>Pemenuhan</th><th>Gap</th><th>Dump truck</th></tr></thead><tbody id="regionRows"></tbody></table></div>

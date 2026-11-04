@@ -5,6 +5,21 @@ const provinces = [
 const fmt = number => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number || 0);
 const normalized = value => value.toLowerCase().replace(/^provinsi\s+/, '').replace(/^daerah istimewa\s+/, 'di ').replace(/^daerah khusus ibukota\s+/, 'dki ').replace(/^kepulauan\s+/, '').replace(/[^a-z]/g, '');
 const provinceKey = normalized;
+const regionAliases = new Map([
+  ['toba', 'tobasamosir'],
+  ['mahakamulu', 'mahakamhulu'],
+  ['kepulauantanimbar', 'tanimbar'],
+  ['pangkajenedankepulauan', 'pangkajenekepulauan']
+]);
+const regionKey = value => {
+  const key = normalized(value)
+    .replace(/^(kabupaten|kotaadministrasi|kota|kab)/, '')
+    .replace(/^administrasi/, '')
+    .replace(/^kepulauan(?=seribu|tanimbar)/, '')
+    .replace(/^kep(?=[a-z])/, '')
+    .replace(/^siau/, 'siau');
+  return regionAliases.get(key) || key;
+};
 const provinceByName = new Map(provinces.map(province => [provinceKey(province.name), province]));
 
 let regionDetails = [];
@@ -12,6 +27,13 @@ let activeProvince = '';
 let rankBy = 'gap';
 let detailsReady;
 let mapReady;
+let boundaryManifest;
+let miniMapRenderId = 0;
+let pinnedRegionPath;
+
+const provinceCodes = new Map([
+  ['Aceh','11'],['Sumatera Utara','12'],['Sumatera Barat','13'],['Riau','14'],['Jambi','15'],['Sumatera Selatan','16'],['Bengkulu','17'],['Lampung','18'],['Bangka Belitung','19'],['Kepulauan Riau','21'],['DKI Jakarta','31'],['Jawa Barat','32'],['Jawa Tengah','33'],['DI Yogyakarta','34'],['Jawa Timur','35'],['Banten','36'],['Bali','51'],['Nusa Tenggara Barat','52'],['Nusa Tenggara Timur','53'],['Kalimantan Barat','61'],['Kalimantan Tengah','62'],['Kalimantan Selatan','63'],['Kalimantan Timur','64'],['Kalimantan Utara','65'],['Sulawesi Utara','71'],['Sulawesi Tengah','72'],['Sulawesi Selatan','73'],['Sulawesi Tenggara','74'],['Gorontalo','75'],['Sulawesi Barat','76'],['Maluku','81'],['Maluku Utara','82'],['Papua','91'],['Papua Barat','92'],['Papua Selatan','93'],['Papua Tengah','94'],['Papua Pegunungan','95'],['Papua Barat Daya','96']
+]);
 
 function selectedRows() {
   const pusdal = document.querySelector('#pusdalFilter').value;
@@ -82,6 +104,38 @@ function mapColor(coverage) {
   return coverage >= 90 ? '#9bda70' : coverage >= 70 ? '#e1c45c' : coverage >= 50 ? '#e88858' : '#e45f54';
 }
 
+function priorityColor(priority) {
+  return { P1: '#e45f54', P2: '#e88858', P3: '#e1c45c', P4: '#9bda70' }[String(priority).slice(0, 2)] || '#496158';
+}
+
+function showRegionMapTooltip(path, row, event) {
+  const tooltip = document.querySelector('#regionMapTooltip');
+  const visual = document.querySelector('.detail-map-visual');
+  const visualBox = visual.getBoundingClientRect();
+  const pathBox = path.getBoundingClientRect();
+  const x = event?.clientX ?? pathBox.left + pathBox.width / 2;
+  const y = event?.clientY ?? pathBox.top + pathBox.height / 2;
+  tooltip.innerHTML = row
+    ? `<strong>${row.n}</strong><span class="tooltip-priority ${row.q.slice(0, 2).toLowerCase()}">${row.q}</span><span>Pemenuhan <b>${row.c.toFixed(1)}%</b></span><span>Gap <b>${fmt(row.g)} ton/hari</b></span><span>Tambahan armada <b>${fmt(row.d)} unit</b></span>`
+    : `<strong>${path.getAttribute('aria-label')}</strong><span>Data prioritas tidak tersedia</span>`;
+  tooltip.classList.add('show');
+  tooltip.setAttribute('aria-hidden', 'false');
+  const halfWidth = tooltip.offsetWidth / 2;
+  tooltip.style.left = `${Math.max(halfWidth + 8, Math.min(visualBox.width - halfWidth - 8, x - visualBox.left))}px`;
+  tooltip.style.top = `${Math.max(tooltip.offsetHeight + 12, y - visualBox.top)}px`;
+}
+
+function hideRegionMapTooltip() {
+  const tooltip = document.querySelector('#regionMapTooltip');
+  tooltip.classList.remove('show');
+  tooltip.setAttribute('aria-hidden', 'true');
+}
+
+function clearPinnedRegionTooltip() {
+  pinnedRegionPath = undefined;
+  hideRegionMapTooltip();
+}
+
 function updateMap() {
   const aggregates = new Map(provinceAggregates().map(province => [provinceKey(province.name), province]));
   document.querySelectorAll('#provinces path').forEach(path => {
@@ -147,6 +201,75 @@ function renderDashboard() {
   updateMap();
 }
 
+async function renderProvinceMiniMap(name, coverage, count) {
+  const renderId = ++miniMapRenderId;
+  const source = document.querySelector(`#provinces path[data-province="${provinceKey(name)}"]`);
+  const target = document.querySelector('#provinceMiniMap');
+  document.querySelector('#detailMapName').textContent = name;
+  document.querySelector('#detailMapCaption').textContent = `${count} kabupaten/kota dalam filter aktif`;
+  target.setAttribute('aria-label', `Peta ${name}`);
+  target.replaceChildren();
+  if (!source) {
+    target.innerHTML = '<text x="160" y="95" text-anchor="middle" fill="#90a89e">Peta tidak tersedia</text>';
+    return;
+  }
+  const shadow = source.cloneNode(false);
+  shadow.removeAttribute('class');
+  shadow.removeAttribute('style');
+  shadow.classList.add('map-shadow');
+  const shape = source.cloneNode(false);
+  shape.removeAttribute('class');
+  shape.style.fill = mapColor(coverage);
+  target.append(shadow, shape);
+  const box = shape.getBBox();
+  const padding = Math.max(box.width, box.height) * 0.13;
+  target.setAttribute('viewBox', `${box.x - padding} ${box.y - padding} ${box.width + padding * 2} ${box.height + padding * 2}`);
+  const code = provinceCodes.get(name);
+  try {
+    boundaryManifest ||= fetch('boundaries/index.json').then(response => {
+      if (!response.ok) throw new Error(response.status);
+      return response.json();
+    });
+    const manifest = await boundaryManifest;
+    if (!code || !manifest[code]) throw new Error('Batas wilayah tidak ditemukan');
+    const geojson = await fetch(`boundaries/${manifest[code].file}`).then(response => {
+      if (!response.ok) throw new Error(response.status);
+      return response.json();
+    });
+    if (renderId !== miniMapRenderId) return;
+    const provinceRows = regionDetails.filter(row => provinceKey(row.p) === provinceKey(name));
+    const rowsByName = new Map(provinceRows.map(row => [regionKey(row.n), row]));
+    const activeRegionKeys = new Set(selectedRows().filter(row => provinceKey(row.p) === provinceKey(name)).map(row => regionKey(row.n)));
+    geojson.features.forEach(feature => {
+      const row = rowsByName.get(regionKey(feature.properties.name));
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', geometryToPath(feature.geometry));
+      path.classList.add('regency-boundary');
+      if (row && !activeRegionKeys.has(regionKey(row.n))) path.classList.add('filtered-out');
+      path.style.setProperty('--region-color', priorityColor(row?.q));
+      path.setAttribute('aria-label', row ? `${row.n}, ${row.q}, pemenuhan ${row.c.toFixed(1)} persen` : feature.properties.name);
+      path.setAttribute('tabindex', '0');
+      path.setAttribute('role', 'button');
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = row ? `${row.n} — ${row.q}` : feature.properties.name;
+      path.appendChild(title);
+      path.addEventListener('pointermove', event => showRegionMapTooltip(path, row, event));
+      path.addEventListener('pointerleave', () => { if (pinnedRegionPath !== path) hideRegionMapTooltip(); });
+      path.addEventListener('focus', () => showRegionMapTooltip(path, row));
+      path.addEventListener('blur', () => { if (pinnedRegionPath !== path) hideRegionMapTooltip(); });
+      path.addEventListener('click', event => {
+        event.stopPropagation();
+        pinnedRegionPath = path;
+        showRegionMapTooltip(path, row, event);
+      });
+      target.appendChild(path);
+    });
+    document.querySelector('#detailMapCaption').textContent = `${geojson.features.length} batas kabupaten/kota • ${count} sesuai filter`;
+  } catch (error) {
+    if (renderId === miniMapRenderId) document.querySelector('#detailMapCaption').textContent = `${count} kabupaten/kota dalam filter aktif`;
+  }
+}
+
 async function openProvince(name) {
   await detailsReady;
   const province = provinceAggregates().find(item => provinceKey(item.name) === provinceKey(name));
@@ -156,6 +279,7 @@ async function openProvince(name) {
   document.querySelector('#detailTitle').textContent = activeProvince;
   document.querySelector('#detailSubtitle').textContent = `${rows.length} kabupaten/kota sesuai filter nasional`;
   document.querySelector('#detailCoverage').textContent = `${province.coverage.toFixed(1)}%`;
+  renderProvinceMiniMap(activeProvince, province.coverage, rows.length);
   document.querySelector('#detailKpis').innerHTML = `<article><span>Timbulan</span><strong>${fmt(province.waste)}</strong><small>ton/hari</small></article><article><span>Gap kapasitas</span><strong>${fmt(province.gap)}</strong><small>ton/hari</small></article><article><span>Tambahan armada</span><strong>${fmt(province.trucks)}</strong><small>dump truck</small></article><article><span>Wilayah kritis</span><strong>${rows.filter(row => row.q.startsWith('P1')).length}</strong><small>kabupaten/kota</small></article>`;
   document.querySelector('#regionSearch').value = '';
   document.querySelector('#priorityFilter').value = 'all';
@@ -174,6 +298,7 @@ function renderRegionRows() {
 }
 
 function closeDetails() {
+  clearPinnedRegionTooltip();
   const overlay = document.querySelector('#detailOverlay');
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
@@ -201,6 +326,7 @@ document.querySelector('#resetFilters').addEventListener('click', () => {
 });
 document.querySelector('#detailClose').addEventListener('click', closeDetails);
 document.querySelector('#detailOverlay').addEventListener('click', event => { if (event.target.id === 'detailOverlay') closeDetails(); });
+document.querySelector('.detail-map-card').addEventListener('click', event => { if (!event.target.classList.contains('regency-boundary')) clearPinnedRegionTooltip(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDetails(); });
 document.querySelector('#regionSearch').addEventListener('input', renderRegionRows);
 document.querySelector('#priorityFilter').addEventListener('change', renderRegionRows);

@@ -11,6 +11,8 @@ Dashboard eksploratif sarana dan prasarana persampahan Indonesia. Aplikasi menam
 - Peringkat provinsi berdasarkan gap atau tingkat pemenuhan.
 - Grafik perbandingan provinsi berdasarkan gap, timbulan, atau pemenuhan.
 - Drill-down provinsi ke seluruh kabupaten/kota.
+- Ilustrasi provinsi dengan warna prioritas dan garis batas administratif kabupaten/kota pada panel drill-down.
+- Tooltip kabupaten/kota dapat dibuka melalui hover, fokus keyboard, atau klik/sentuh.
 - Filter nasional berdasarkan Pusdal, kategori wilayah, dan prioritas P1–P4.
 - Agregasi kartu ringkasan, peta, peringkat, dan grafik mengikuti filter aktif.
 - Pencarian kabupaten/kota dan filter prioritas P1–P4.
@@ -44,6 +46,7 @@ Referensi wilayah:
 
 - `provinces.csv` dan `regencies.csv`: kode wilayah Kemendagri 2025 dari [dataset-wilayah-indonesia](https://github.com/prodhokter/dataset-wilayah-indonesia).
 - `indonesia-38-provinces.geojson`: batas 38 provinsi dari [indonesia-geojson-topojson-maps-with-38-provinces](https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces), berlisensi CC BY 4.0.
+- `boundaries/*.geojson`: batas 514 kabupaten/kota dari [Indonesia-GeoJSON](https://github.com/AlfianAliM/Indonesia-GeoJSON), berlisensi MIT; geometri disederhanakan untuk kebutuhan web.
 
 ## Struktur proyek
 
@@ -55,12 +58,14 @@ Referensi wilayah:
 ├── map.css                            # Gaya peta dan tooltip
 ├── detail.css                         # Gaya drawer drill-down
 ├── indonesia-38-provinces.geojson     # Geometri 38 provinsi
+├── boundaries/                        # Geometri kabupaten/kota per provinsi
 ├── region-details.json                # Dataset final 514 kabupaten/kota
 ├── region-details.raw.json            # Snapshot detail sebelum enrichment provinsi
 ├── provinces.csv                      # Referensi provinsi Kemendagri
 ├── regencies.csv                      # Referensi kabupaten/kota Kemendagri
 └── scripts/
-    └── build-region-data.mjs          # Pencocokan wilayah dan pembentukan dataset final
+    ├── build-region-data.mjs          # Pencocokan wilayah dan pembentukan dataset final
+    └── build-boundaries.mjs           # Penyederhanaan geometri kabupaten/kota
 ```
 
 Kolom ringkas dalam `region-details.json`:
