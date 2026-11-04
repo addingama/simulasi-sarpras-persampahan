@@ -1,5 +1,17 @@
 stages:
+  - validate
   - deploy
+
+validate_data:
+  stage: validate
+  image: node:20-alpine
+  script:
+    - apk add --no-cache git
+    - node scripts/build-region-data.mjs
+    - node scripts/validate-data.mjs
+    - git diff --exit-code -- region-details.json
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
 
 deploy_production:
   stage: deploy
@@ -11,10 +23,18 @@ deploy_production:
   before_script:
     - ': "${VPS_HOST:?Variabel VPS_HOST belum diisi}"'
     - ': "${VPS_USERNAME:?Variabel VPS_USERNAME belum diisi}"'
-    - ': "${VPS_PASSWORD:?Variabel VPS_PASSWORD belum diisi}"'
-    - apk add --no-cache openssh-client sshpass
+    - apk add --no-cache openssh-client curl
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - |
+      if [ -n "${VPS_SSH_PRIVATE_KEY:-}" ]; then
+        printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+        sed -i 's/\r$//' ~/.ssh/id_deploy
+        chmod 600 ~/.ssh/id_deploy
+      else
+        : "${VPS_PASSWORD:?Isi VPS_SSH_PRIVATE_KEY atau VPS_PASSWORD}"
+        apk add --no-cache sshpass
+      fi
     - |
       if [ -n "${VPS_KNOWN_HOSTS:-}" ]; then
         printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
@@ -24,13 +44,23 @@ deploy_production:
     - chmod 600 ~/.ssh/known_hosts
   script:
     - |
-      SSHPASS="$VPS_PASSWORD" sshpass -e ssh \
-        -p "${VPS_PORT:-22}" \
-        -o BatchMode=no \
-        -o PreferredAuthentications=password \
-        -o PubkeyAuthentication=no \
-        "$VPS_USERNAME@$VPS_HOST" \
-        "cd /opt/sarpras && git pull --ff-only origin main"
+      if [ -n "${VPS_SSH_PRIVATE_KEY:-}" ]; then
+        ssh -i ~/.ssh/id_deploy \
+          -p "${VPS_PORT:-22}" \
+          -o IdentitiesOnly=yes \
+          "$VPS_USERNAME@$VPS_HOST" \
+          "cd /opt/sarpras && git pull --ff-only origin main"
+      else
+        SSHPASS="$VPS_PASSWORD" sshpass -e ssh \
+          -p "${VPS_PORT:-22}" \
+          -o BatchMode=no \
+          -o PreferredAuthentications=password \
+          -o PubkeyAuthentication=no \
+          "$VPS_USERNAME@$VPS_HOST" \
+          "cd /opt/sarpras && git pull --ff-only origin main"
+      fi
+    - curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors https://sarpras.sipsd.id/ -o /dev/null
+    - curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors https://sarpras.sipsd.id/region-details.json -o /dev/null
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   interruptible: false

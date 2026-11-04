@@ -152,12 +152,14 @@ systemctl reload nginx
 
 Pipeline pada `.gitlab-ci.yml` menjalankan deployment otomatis setiap ada push ke branch default GitLab. Job akan:
 
-1. membuat container CI sementara;
-2. memasang OpenSSH Client dan `sshpass`;
-3. memverifikasi host SSH;
-4. terhubung ke VPS;
-5. masuk ke `/opt/sarpras`;
-6. menjalankan `git pull --ff-only origin main`.
+1. membangun ulang dan memvalidasi konsistensi dataset;
+2. memastikan hasil generator data sudah tersimpan di repository;
+3. membuat container deployment sementara;
+4. memverifikasi host SSH;
+5. terhubung ke VPS dengan SSH key atau password;
+6. masuk ke `/opt/sarpras`;
+7. menjalankan `git pull --ff-only origin main`;
+8. menjalankan smoke test pada halaman utama dan `region-details.json`.
 
 Tambahkan variabel berikut melalui **GitLab → Settings → CI/CD → Variables**:
 
@@ -165,11 +167,12 @@ Tambahkan variabel berikut melalui **GitLab → Settings → CI/CD → Variables
 | --- | --- | --- |
 | `VPS_HOST` | Ya | IP atau hostname VPS |
 | `VPS_USERNAME` | Ya | Username SSH pada VPS |
-| `VPS_PASSWORD` | Ya | Password SSH pengguna tersebut |
+| `VPS_SSH_PRIVATE_KEY` | Direkomendasikan | Private key SSH khusus deployment |
+| `VPS_PASSWORD` | Fallback | Password SSH jika private key tidak digunakan |
 | `VPS_PORT` | Tidak | Port SSH; default `22` |
 | `VPS_KNOWN_HOSTS` | Direkomendasikan | Public host key VPS dalam format `known_hosts` |
 
-Atur `VPS_USERNAME` dan `VPS_PASSWORD` sebagai **Masked** dan **Protected**. Atur variabel lain sebagai **Protected** bila branch `main` juga dilindungi.
+Isi salah satu dari `VPS_SSH_PRIVATE_KEY` atau `VPS_PASSWORD`. SSH key direkomendasikan. Atur credential sebagai **Masked** dan **Protected**. Atur variabel lain sebagai **Protected** bila branch `main` juga dilindungi.
 
 Untuk memperoleh nilai `VPS_KNOWN_HOSTS`, jalankan dari mesin yang dipercaya:
 
@@ -202,6 +205,26 @@ VPS juga harus memiliki akses ke repository GitLab. Untuk repository privat, kon
 - credential HTTPS dengan hak baca repository.
 
 Pipeline tidak menjalankan `git reset`, tidak menggunakan force pull, dan akan gagal jika `/opt/sarpras` memiliki perubahan lokal yang bertentangan. Hal ini mencegah deployment menimpa perubahan server secara diam-diam.
+
+### Validasi data di CI
+
+`scripts/validate-data.mjs` menghentikan pipeline jika ditemukan masalah berikut:
+
+- jumlah daerah bukan 514;
+- jumlah provinsi bukan 38;
+- Pusdal, provinsi, kategori, atau prioritas kosong/tidak valid;
+- nama kabupaten/kota duplikat;
+- angka negatif atau persentase di luar 0–100;
+- agregat nasional menyimpang dari snapshot acuan;
+- GeoJSON bukan 38 fitur provinsi;
+- file referensi wilayah memiliki jumlah baris yang tidak sesuai.
+
+Validasi dapat dijalankan lokal:
+
+```bash
+node scripts/build-region-data.mjs
+node scripts/validate-data.mjs
+```
 
 ## Konfigurasi Nginx
 
