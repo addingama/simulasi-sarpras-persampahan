@@ -53,6 +53,9 @@ Referensi wilayah:
 ```text
 .
 ├── index.html                         # Struktur halaman dashboard
+├── favicon.svg                        # Ikon utama browser berbasis vektor
+├── favicon.ico                        # Fallback favicon browser lama
+├── apple-touch-icon.png               # Ikon perangkat Apple
 ├── app.js                             # Data provinsi dan seluruh interaksi UI
 ├── styles.css                         # Gaya utama dashboard
 ├── map.css                            # Gaya peta dan tooltip
