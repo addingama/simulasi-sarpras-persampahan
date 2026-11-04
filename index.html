@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#071712" />
+  <title>Peta Persampahan Indonesia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="map.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="#"><span class="brand-mark">P</span><span>Peta Persampahan</span></a>
+      <div class="top-actions"><span class="status"><i></i> Data terhubung</span><button class="icon-btn" id="themeBtn" aria-label="Ubah tema">◐</button></div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">DATABASE TEKNIS OPERASIONAL · 2 NOV 2026</div>
+      <h1>Potret layanan sampah<br><em>Indonesia.</em></h1>
+      <p>Jelajahi kesenjangan kapasitas angkut, kebutuhan armada, dan kesiapan layanan persampahan di 38 provinsi.</p>
+    </section>
+
+    <section class="kpis" aria-label="Ringkasan nasional">
+      <article><span>Cakupan wilayah</span><strong>514</strong><small>kabupaten / kota</small></article>
+      <article><span>Timbulan sampah</span><strong>144.575</strong><small>ton per hari</small></article>
+      <article><span>Pemenuhan angkut</span><strong>73,9%</strong><small>dari kebutuhan nasional</small></article>
+      <article class="accent"><span>Gap kapasitas</span><strong>51.730</strong><small>ton per hari</small></article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="map-card panel">
+        <div class="panel-head"><div><span class="label">PETA KINERJA</span><h2>Pemenuhan kapasitas angkut</h2></div><div class="legend"><span><i class="good"></i>Memadai</span><span><i class="mid"></i>Perlu perhatian</span><span><i class="bad"></i>Kritis</span></div></div>
+        <div class="map-wrap">
+          <div class="map-glow"></div>
+          <svg class="indo-map" id="indoMap" viewBox="0 0 900 360" role="img" aria-label="Peta administratif 38 provinsi Indonesia"><g id="provinces"></g></svg>
+          <div id="mapTooltip" class="map-tooltip" aria-hidden="true"></div>
+          <div class="map-caption"><strong>9.755</strong><span>ekuivalen tambahan<br>dump truck dibutuhkan</span></div>
+        </div>
+        <div class="map-footer"><span>Data agregat seluruh kabupaten/kota</span><span>Arahkan kursor ke provinsi untuk melihat data</span></div>
+      </article>
+
+      <aside class="ranking panel">
+        <div class="panel-head"><div><span class="label">PRIORITAS</span><h2>Gap terbesar</h2></div><button id="sortBtn" class="text-btn">Pemenuhan ↕</button></div>
+        <div id="rankList" class="rank-list"></div>
+      </aside>
+    </section>
+
+    <section class="analysis-grid">
+      <article class="panel chart-panel">
+        <div class="panel-head"><div><span class="label">PERBANDINGAN</span><h2>Kapasitas angkut per provinsi</h2></div><select id="metricSelect"><option value="gap">Gap kapasitas</option><option value="waste">Timbulan</option><option value="coverage">Pemenuhan</option></select></div>
+        <div id="barChart" class="bars"></div>
+      </article>
+      <article class="panel insight">
+        <span class="label">CATATAN UTAMA</span><div class="insight-number">401</div><h2>wilayah perlu pemeriksaan kualitas data.</h2><p>Validasi silang menemukan 383 kabupaten/kota memiliki data armada lapangan. Penguatan kualitas data adalah fondasi keputusan investasi yang lebih presisi.</p><div class="progress"><span style="width:78%"></span></div><small>78% wilayah memiliki armada terverifikasi</small>
+      </article>
+    </section>
+
+    <footer><span>Sumber: Database Teknis Operasional Persampahan</span><span>Visualisasi eksploratif · snapshot Google Sheets 2 Nov 2026</span></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
