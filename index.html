@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="map.css" />
+  <link rel="stylesheet" href="detail.css" />
 </head>
 <body>
   <main class="shell">
@@ -59,8 +60,17 @@
       </article>
     </section>
 
-    <footer><span>Sumber: Database Teknis Operasional Persampahan</span><span>Visualisasi eksploratif · snapshot Google Sheets 2 Nov 2026</span></footer>
+    <footer><span>Sumber: Database Teknis Operasional Persampahan · referensi wilayah Kemendagri 2025</span><span>Visualisasi eksploratif · snapshot Google Sheets 2 Nov 2026</span></footer>
   </main>
+  <div class="detail-overlay" id="detailOverlay" aria-hidden="true">
+    <aside class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="detail-top"><button class="detail-close" id="detailClose" aria-label="Tutup detail">×</button><span class="label">DRILL-DOWN PROVINSI</span></div>
+      <div class="detail-heading"><div><h2 id="detailTitle">Provinsi</h2><p id="detailSubtitle"></p></div><div class="detail-score"><strong id="detailCoverage">—</strong><span>pemenuhan angkut</span></div></div>
+      <div class="detail-kpis" id="detailKpis"></div>
+      <div class="detail-controls"><input id="regionSearch" type="search" placeholder="Cari kabupaten atau kota…" /><select id="priorityFilter"><option value="all">Semua prioritas</option><option value="P1">P1 · Kritis</option><option value="P2">P2 · Sangat kurang</option><option value="P3">P3 · Kurang</option><option value="P4">P4 · Memadai</option></select></div>
+      <div class="detail-table-wrap"><table class="detail-table"><thead><tr><th>Daerah</th><th>Prioritas</th><th>Timbulan</th><th>Pemenuhan</th><th>Gap</th><th>Dump truck</th></tr></thead><tbody id="regionRows"></tbody></table></div>
+    </aside>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
