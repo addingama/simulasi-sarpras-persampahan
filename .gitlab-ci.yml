@@ -1,0 +1,36 @@
+stages:
+  - deploy
+
+deploy_production:
+  stage: deploy
+  image: alpine:3.21
+  environment:
+    name: production
+    url: https://sarpras.sipsd.id
+  resource_group: production
+  before_script:
+    - ': "${VPS_HOST:?Variabel VPS_HOST belum diisi}"'
+    - ': "${VPS_USERNAME:?Variabel VPS_USERNAME belum diisi}"'
+    - ': "${VPS_PASSWORD:?Variabel VPS_PASSWORD belum diisi}"'
+    - apk add --no-cache openssh-client sshpass
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - |
+      if [ -n "${VPS_KNOWN_HOSTS:-}" ]; then
+        printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      else
+        ssh-keyscan -p "${VPS_PORT:-22}" -H "$VPS_HOST" > ~/.ssh/known_hosts
+      fi
+    - chmod 600 ~/.ssh/known_hosts
+  script:
+    - |
+      SSHPASS="$VPS_PASSWORD" sshpass -e ssh \
+        -p "${VPS_PORT:-22}" \
+        -o BatchMode=no \
+        -o PreferredAuthentications=password \
+        -o PubkeyAuthentication=no \
+        "$VPS_USERNAME@$VPS_HOST" \
+        "cd /opt/sarpras && git pull --ff-only origin main"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  interruptible: false

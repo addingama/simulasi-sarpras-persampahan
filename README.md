@@ -148,6 +148,61 @@ nginx -t
 systemctl reload nginx
 ```
 
+## Deployment otomatis GitLab CI
+
+Pipeline pada `.gitlab-ci.yml` menjalankan deployment otomatis setiap ada push ke branch default GitLab. Job akan:
+
+1. membuat container CI sementara;
+2. memasang OpenSSH Client dan `sshpass`;
+3. memverifikasi host SSH;
+4. terhubung ke VPS;
+5. masuk ke `/opt/sarpras`;
+6. menjalankan `git pull --ff-only origin main`.
+
+Tambahkan variabel berikut melalui **GitLab → Settings → CI/CD → Variables**:
+
+| Variabel | Wajib | Isi |
+| --- | --- | --- |
+| `VPS_HOST` | Ya | IP atau hostname VPS |
+| `VPS_USERNAME` | Ya | Username SSH pada VPS |
+| `VPS_PASSWORD` | Ya | Password SSH pengguna tersebut |
+| `VPS_PORT` | Tidak | Port SSH; default `22` |
+| `VPS_KNOWN_HOSTS` | Direkomendasikan | Public host key VPS dalam format `known_hosts` |
+
+Atur `VPS_USERNAME` dan `VPS_PASSWORD` sebagai **Masked** dan **Protected**. Atur variabel lain sebagai **Protected** bila branch `main` juga dilindungi.
+
+Untuk memperoleh nilai `VPS_KNOWN_HOSTS`, jalankan dari mesin yang dipercaya:
+
+```bash
+ssh-keyscan -H -p 22 IP_VPS
+```
+
+Salin seluruh hasilnya sebagai nilai variabel. Jika `VPS_KNOWN_HOSTS` tidak diisi, pipeline akan mengambil host key menggunakan `ssh-keyscan` saat job berjalan. Cara tersebut lebih mudah, tetapi tidak memberikan perlindungan sekuat host key yang diverifikasi sebelumnya.
+
+### Persiapan VPS
+
+Repository harus sudah tersedia di `/opt/sarpras` dan dapat ditarik oleh user deployment:
+
+```bash
+cd /opt
+git clone git@gitlab.com:genetik/sipsd-sarpras.git sarpras
+chown -R USER_DEPLOY:USER_DEPLOY /opt/sarpras
+```
+
+Pastikan user deployment dapat menjalankan perintah berikut tanpa interaksi:
+
+```bash
+cd /opt/sarpras
+git pull --ff-only origin main
+```
+
+VPS juga harus memiliki akses ke repository GitLab. Untuk repository privat, konfigurasi salah satu dari berikut pada VPS:
+
+- deploy key SSH GitLab; atau
+- credential HTTPS dengan hak baca repository.
+
+Pipeline tidak menjalankan `git reset`, tidak menggunakan force pull, dan akan gagal jika `/opt/sarpras` memiliki perubahan lokal yang bertentangan. Hal ini mencegah deployment menimpa perubahan server secara diam-diam.
+
 ## Konfigurasi Nginx
 
 Domain produksi:
