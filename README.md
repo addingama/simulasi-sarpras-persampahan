@@ -11,6 +11,8 @@ Dashboard eksploratif sarana dan prasarana persampahan Indonesia. Aplikasi menam
 - Peringkat provinsi berdasarkan gap atau tingkat pemenuhan.
 - Grafik perbandingan provinsi berdasarkan gap, timbulan, atau pemenuhan.
 - Drill-down provinsi ke seluruh kabupaten/kota.
+- Filter nasional berdasarkan Pusdal, kategori wilayah, dan prioritas P1–P4.
+- Agregasi kartu ringkasan, peta, peringkat, dan grafik mengikuti filter aktif.
 - Pencarian kabupaten/kota dan filter prioritas P1–P4.
 - Tema gelap dan terang.
 - Tampilan responsif untuk desktop dan perangkat bergerak.
@@ -65,6 +67,7 @@ Kolom ringkas dalam `region-details.json`:
 
 | Kolom | Keterangan |
 | --- | --- |
+| `s` | Wilayah Pusdal LH |
 | `p` | Provinsi |
 | `n` | Nama kabupaten/kota |
 | `k` | Kategori wilayah |
@@ -289,6 +292,5 @@ Pengembangan yang disarankan:
 - validasi skema data sebelum deployment;
 - CI/CD GitLab untuk deployment otomatis;
 - histori snapshot dan perbandingan antarperiode;
-- filter nasional berdasarkan Pusdal, kategori wilayah, dan prioritas;
 - geometri serta visualisasi tingkat kabupaten/kota;
 - pengujian otomatis untuk agregasi data dan interaksi dashboard.
